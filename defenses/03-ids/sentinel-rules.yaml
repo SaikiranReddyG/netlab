@@ -1,0 +1,30 @@
+rules:
+  - name: "Lab ARP spoof"
+    protocol: arp
+    threshold:
+      count: 5
+      window: 10
+      group_by: src_mac
+    severity: high
+    message: "ARP spoof detected from {src_mac}"
+
+  - name: "Lab SYN flood"
+    protocol: tcp
+    flags: SYN
+    dst_ip: "10.0.0.10"
+    threshold:
+      count: 50
+      window: 5
+      group_by: src_ip
+    severity: critical
+    message: "SYN flood targeting server from {src_ip}"
+
+  - name: "Lab DNS anomaly"
+    protocol: udp
+    src_port: 53
+    threshold:
+      count: 40
+      window: 5
+      group_by: src_ip
+    severity: medium
+    message: "High-rate DNS responses from {src_ip}"

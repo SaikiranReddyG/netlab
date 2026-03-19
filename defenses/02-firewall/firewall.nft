@@ -1,0 +1,34 @@
+table inet netlab {
+  chain input {
+    type filter hook input priority 0; policy drop;
+
+    iif lo accept
+    ct state established,related accept
+    ct state invalid drop
+
+    # Keep basic troubleshooting available in-lab.
+    ip protocol icmp accept
+
+    # Permit lab DNS and HTTP service traffic.
+    tcp dport { 80, 22 } accept
+    udp dport 53 accept
+    tcp dport 53 accept
+
+    # Mitigate SYN floods.
+    tcp flags syn limit rate 25/second burst 50 packets accept
+
+    log prefix "netlab-input-drop: " flags all counter drop
+  }
+
+  chain forward {
+    type filter hook forward priority 0; policy drop;
+
+    ct state established,related accept
+    ct state invalid drop
+
+    # Anti-spoof: only allow source addresses from lab subnet.
+    ip saddr 10.0.0.0/24 accept
+
+    log prefix "netlab-fwd-drop: " flags all counter drop
+  }
+}
