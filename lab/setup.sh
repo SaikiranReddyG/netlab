@@ -31,6 +31,18 @@ command_exists() {
   command -v "$1" >/dev/null 2>&1
 }
 
+print_install_hint() {
+  echo "[i] Install dependencies with: sudo ./lab/install-deps.sh"
+
+  if command_exists apt-get; then
+    echo "[i] Detected apt-get. Manual install:"
+    echo "    sudo apt-get update && sudo apt-get install -y iproute2 bridge-utils tcpdump dnsmasq hping3 nftables curl dnsutils python3 python3-pip python3-scapy python3-yaml"
+  elif command_exists pacman; then
+    echo "[i] Detected pacman. Manual install:"
+    echo "    sudo pacman -Sy --noconfirm iproute2 bridge-utils tcpdump dnsmasq hping nftables curl bind python python-pip python-scapy python-yaml"
+  fi
+}
+
 check_prereqs() {
   local missing=0
   local tools=(ip python3 tcpdump dnsmasq nft hping3)
@@ -58,6 +70,7 @@ check_prereqs() {
   fi
 
   if [[ ${missing} -ne 0 ]]; then
+    print_install_hint
     exit 1
   fi
 }

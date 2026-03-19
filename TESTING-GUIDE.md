@@ -19,14 +19,19 @@
 
 ### Required Tools
 ```bash
-# Core networking
-sudo apt-get install -y iproute2 bridge-utils tcpdump dnsmasq hping3
+# Recommended (auto-detects apt-get or pacman)
+sudo ./lab/install-deps.sh
 
-# Python dependencies
-pip install scapy
+# Debian/Ubuntu (manual)
+sudo apt-get update
+sudo apt-get install -y iproute2 bridge-utils tcpdump dnsmasq hping3 nftables curl dnsutils python3 python3-pip python3-scapy python3-yaml
+
+# Arch Linux (manual)
+sudo pacman -Sy --noconfirm iproute2 bridge-utils tcpdump dnsmasq hping nftables curl bind python python-pip python-scapy python-yaml
 
 # Optional: network analysis
-sudo apt-get install -y nftables wireshark tshark
+# Debian/Ubuntu: sudo apt-get install -y wireshark tshark
+# Arch Linux:    sudo pacman -Sy --noconfirm wireshark-qt tshark
 ```
 
 ### Installation Verification
@@ -39,6 +44,7 @@ command -v dnsmasq && echo "✓ dnsmasq"
 command -v hping3 && echo "✓ hping3"
 command -v nft && echo "✓ nftables"
 python3 -c "import scapy.all" && echo "✓ scapy"
+python3 -c "import yaml" && echo "✓ pyyaml"
 ```
 
 ---
@@ -434,9 +440,8 @@ sudo ./lab/status.sh
 # Check what's missing
 ./lab/setup.sh 2>&1 | grep "\[!\]"
 
-# Install missing packages (Ubuntu/Debian)
-sudo apt-get install -y iproute2 tcpdump dnsmasq hping3 nftables
-pip install scapy
+# Install missing packages (auto-detects apt-get/pacman)
+sudo ./lab/install-deps.sh
 ```
 
 ### Issue: DNS returns NXDOMAIN

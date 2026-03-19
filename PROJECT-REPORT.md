@@ -1083,7 +1083,7 @@ sudo ./lab/teardown.sh
 ## Technical Stack
 
 ### System Requirements
-- **OS**: Linux (Ubuntu 20.04+, Debian 11+, CentOS 8+)
+- **OS**: Linux (Ubuntu 20.04+, Debian 11+, Arch Linux, CentOS 8+)
 - **Kernel**: 4.4+ (namespace support)
 - **RAM**: 2GB minimum, 4GB+ recommended
 - **CPU**: 2+ cores

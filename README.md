@@ -2,6 +2,13 @@
 
 Isolated network attack-and-defense lab using Linux namespaces.
 
+## Install dependencies
+```bash
+sudo ./lab/install-deps.sh
+```
+
+This installer supports both `apt-get` (Debian/Ubuntu) and `pacman` (Arch Linux).
+
 ## Quick start
 ```bash
 sudo ./lab/setup.sh
