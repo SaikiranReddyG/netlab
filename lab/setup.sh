@@ -155,6 +155,10 @@ main() {
   create_veth_pair "dns" "${NS_DNS}" "${DNS_IP}"
 
   enable_forwarding
+  
+  # Wait for interfaces to settle before starting services (esp. dnsmasq binding)
+  sleep 1
+  
   start_services
   print_summary
 }
