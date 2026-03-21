@@ -18,7 +18,7 @@ DNS_IP="10.0.0.53/24"
 BRIDGE_IP="10.0.0.1/24"
 GW_IP="10.0.0.1"
 
-SENTINEL_PATH_DEFAULT="/home/reddy/codex-workspace/sentinel"
+SENTINEL_PATH_DEFAULT="/home/sai/codex-workspace/sentinel"
 
 require_root() {
   if [[ ${EUID} -ne 0 ]]; then
