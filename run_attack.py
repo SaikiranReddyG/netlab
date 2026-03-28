@@ -11,11 +11,21 @@ import sys
 import os
 import json
 import time
+import importlib.util
+from pathlib import Path
 
-sys.path.insert(0, '/home/sai/codex-workspace/codex-platform')
-from codex_bus import CodexBus
+WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
+CODEX_BUS_PATH = WORKSPACE_ROOT / 'codex-platform' / 'codex_bus.py'
 
-NETLAB_DIR = '/home/sai/codex-workspace/netlab'
+# Load codex_bus directly from file so this script works regardless of CWD/PYTHONPATH.
+spec = importlib.util.spec_from_file_location('codex_bus', CODEX_BUS_PATH)
+if spec is None or spec.loader is None:
+    raise ImportError(f'Unable to load module at {CODEX_BUS_PATH}')
+codex_bus = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(codex_bus)
+CodexBus = codex_bus.CodexBus
+
+NETLAB_DIR = str(Path(__file__).resolve().parent)
 
 ATTACKS = {
     'arp_spoof': {
