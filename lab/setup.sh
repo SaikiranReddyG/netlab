@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+WORKSPACE_DIR="$(cd "${ROOT_DIR}/.." && pwd)"
 RUNTIME_DIR="${ROOT_DIR}/.netlab-runtime"
 
 NS_ATK="ns-atk"
@@ -18,7 +19,7 @@ DNS_IP="10.0.0.53/24"
 BRIDGE_IP="10.0.0.1/24"
 GW_IP="10.0.0.1"
 
-SENTINEL_PATH_DEFAULT="/home/sai/codex-workspace/sentinel"
+SENTINEL_PATH_DEFAULT="${WORKSPACE_DIR}/sentinel"
 
 require_root() {
   if [[ ${EUID} -ne 0 ]]; then

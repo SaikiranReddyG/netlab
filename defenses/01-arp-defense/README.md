@@ -9,13 +9,13 @@ This pins gateway and DNS ARP entries as permanent in the selected namespace.
 
 ## Detection (Sentinel-first)
 ```bash
-sudo ip netns exec ns-def python3 /home/reddy/codex-workspace/netlab/defenses/01-arp-defense/detect.py \
+sudo ip netns exec ns-def python3 defenses/01-arp-defense/detect.py \
   --iface veth-def \
-  --sentinel-path /home/reddy/codex-workspace/sentinel
+  --sentinel-path ../sentinel
 ```
 
 ## Detection fallback mode
 ```bash
-sudo ip netns exec ns-def python3 /home/reddy/codex-workspace/netlab/defenses/01-arp-defense/detect.py \
+sudo ip netns exec ns-def python3 defenses/01-arp-defense/detect.py \
   --iface veth-def --fallback
 ```

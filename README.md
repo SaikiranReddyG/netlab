@@ -29,7 +29,7 @@ sudo ./lab/teardown.sh
 
 ## Sentinel integration
 Netlab defense scripts default to:
-- `/home/reddy/codex-workspace/sentinel`
+- `../sentinel`
 
 Override when needed:
 ```bash

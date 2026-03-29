@@ -10,7 +10,7 @@ sudo ./attacks/01-arp-spoof/attack.sh
 
 ## Run (Scapy)
 ```bash
-sudo ip netns exec ns-atk python3 /home/reddy/codex-workspace/netlab/attacks/01-arp-spoof/attack.py --iface veth-atk
+sudo ip netns exec ns-atk python3 attacks/01-arp-spoof/attack.py --iface veth-atk
 ```
 
 ## Verify
@@ -21,5 +21,5 @@ Expected: gateway IP points to attacker MAC during the attack.
 
 ## Capture
 ```bash
-sudo ip netns exec ns-srv tcpdump -ni veth-srv arp -w /home/reddy/codex-workspace/netlab/captures/01-arp-spoof.pcap
+sudo ip netns exec ns-srv tcpdump -ni veth-srv arp -w captures/01-arp-spoof.pcap
 ```

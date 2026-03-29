@@ -53,7 +53,7 @@ python3 -c "import yaml" && echo "✓ pyyaml"
 
 ### 1. Start the Lab
 ```bash
-cd /home/reddy/codex-workspace/netlab
+cd /path/to/codex-workspace/netlab
 sudo ./lab/setup.sh
 ```
 
@@ -532,7 +532,7 @@ echo "After: $(tcpdump -r after-defense.pcap 2>/dev/null | wc -l)"
 ### Sentinel Integration Testing
 ```bash
 # If Sentinel is available
-export SENTINEL_PATH=/home/reddy/codex-workspace/sentinel
+export SENTINEL_PATH=/path/to/codex-workspace/sentinel
 
 # Run detection in background
 python3 defenses/01-arp-defense/detect.py &

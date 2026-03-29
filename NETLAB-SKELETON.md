@@ -365,7 +365,7 @@ sudo ip netns exec ns-atk bash
 sudo ip netns exec ns-srv tcpdump -i veth-srv -w captures/arp-attack.pcap
 
 # run sentinel inside defender namespace
-sudo ip netns exec ns-def python3 ~/codex-workspace/sentinel/src/main.py -i veth-def
+sudo ip netns exec ns-def python3 ../sentinel/src/main.py -i veth-def
 
 # destroy the lab
 sudo ./lab/teardown.sh

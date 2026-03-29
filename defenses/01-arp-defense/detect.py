@@ -23,17 +23,23 @@ except Exception:  # pragma: no cover - optional fallback import
     sniff = None
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+NETLAB_ROOT = SCRIPT_DIR.parents[1]
+DEFAULT_SENTINEL_PATH = NETLAB_ROOT.parent / "sentinel"
+DEFAULT_RULES_PATH = NETLAB_ROOT / "defenses" / "03-ids" / "sentinel-rules.yaml"
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Netlab ARP spoof detector")
     p.add_argument("--iface", default="veth-def")
     p.add_argument(
         "--sentinel-path",
-        default=os.environ.get("SENTINEL_PATH", "/home/reddy/codex-workspace/sentinel"),
+        default=os.environ.get("SENTINEL_PATH", str(DEFAULT_SENTINEL_PATH)),
         help="Path to sentinel repository",
     )
     p.add_argument(
         "--rules",
-        default="/home/reddy/codex-workspace/netlab/defenses/03-ids/sentinel-rules.yaml",
+        default=str(DEFAULT_RULES_PATH),
         help="Sentinel rules YAML for the lab",
     )
     p.add_argument("--fallback", action="store_true", help="Force Scapy fallback detector")
