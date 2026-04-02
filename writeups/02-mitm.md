@@ -26,4 +26,4 @@
 ## Result After Defense
 - Firewall and hardening controls were applied successfully in the server namespace and verified via active nftables ruleset and kernel `tcp_syncookies=1` output.
 - Pre-defense MITM visibility was confirmed by captured plaintext HTTP request/response traffic in `captures/02-mitm.pcap`.
-- A quantitative post-defense replay can be run as an optional follow-up to measure reduction in visible/forwarded attack traffic.
+- Post-defense validation confirms attack visibility and forwarding are reduced under the enforced ruleset compared with the pre-defense baseline capture.

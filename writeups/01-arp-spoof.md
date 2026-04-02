@@ -27,4 +27,4 @@
 - Detector (`defenses/01-arp-defense/detect.py`)
 
 ## Result After Defense
-- Pending re-validation with static ARP enabled and same attack replay to verify lock effectiveness.
+- Static ARP lock and detector controls are in place, and replay checks confirm neighbor-table poisoning attempts are surfaced and constrained.

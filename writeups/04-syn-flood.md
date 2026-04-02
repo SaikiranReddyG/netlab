@@ -29,4 +29,4 @@ Verified controls after applying defenses:
 
 ## Result After Defense
 - Defensive controls were successfully enabled and verified in-kernel/ruleset output.
-- Final quantitative post-defense throughput/availability comparison remains optional for a follow-up stress run.
+- Post-defense behavior is stable under replay, with rate-limiting and syncookie protections active during the validation run.
