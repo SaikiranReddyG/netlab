@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netlab"
+version = "0.1.0"
+description = "Single-host network attack/defense lab using Linux network namespaces."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.0",
+    "requests>=2.25",
+]
+
+[project.scripts]
+netlab = "netlab.cli:main"
