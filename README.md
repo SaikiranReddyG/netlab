@@ -13,11 +13,12 @@ Run these commands from a freshly-cloned repository (pop/ubuntu 24.04):
 ```bash
 git clone <repo-url> netlab && cd netlab
 sudo ./lab/install-deps.sh
-sudo pip install -e .
-sudo netlab list
-sudo netlab run arp_spoof
-sudo netlab status
-sudo netlab clean
+python3 -m venv .venv
+.venv/bin/pip install --upgrade pip setuptools wheel
+.venv/bin/pip install -e .
+sudo .venv/bin/netlab list
+sudo .venv/bin/netlab run arp_spoof
+sudo .venv/bin/netlab clean
 ```
 
 Scenarios
@@ -31,9 +32,9 @@ How netlab works
 ----------------
 `lab/setup.sh` creates four network namespaces (`ns-atk`, `ns-def`, `ns-srv`, `ns-dns`) and a bridge `br-lab`. Scenarios are Python wrappers in `netlab/scenarios/` that invoke the existing attack scripts inside the `ns-atk` namespace. Events are emitted as JSON to a configurable output (`stdout`, `file`, or `http_post`) following `CONTRACT.md`.
 
-Integration with codex-platform
-------------------------------
-netlab runs standalone and emits codex-contract events that external consumers (e.g., Sentinel or codex-platform) can ingest. See `CONTRACT.md` for the event schema and `netlab --help` for runtime options.
+Integration
+-----------
+netlab runs standalone and emits codex-contract events that external consumers can ingest. See `CONTRACT.md` for the event schema and `netlab --help` for runtime options.
 
 Building / installing
 ---------------------
@@ -41,7 +42,7 @@ System deps are installed with `sudo ./lab/install-deps.sh`.
 Install the Python package in editable mode:
 
 ```bash
-sudo pip install -e .
+.venv/bin/pip install -e .
 ```
 
 Troubleshooting
@@ -49,48 +50,13 @@ Troubleshooting
 If something leaves the host in a bad state, run:
 
 ```bash
-sudo netlab clean
+sudo .venv/bin/netlab clean
 ```
+
+If your system's `venv` module does create a `pip` executable, you can use that form instead; the `python -m pip` variant is the portable fallback.
 
 See `docs/TESTING-GUIDE.md` for further troubleshooting steps.
 
 License
 -------
 MIT
-# Netlab
-
-Isolated network attack-and-defense lab using Linux namespaces.
-
-## Install dependencies
-```bash
-sudo ./lab/install-deps.sh
-```
-
-This installer supports both `apt-get` (Debian/Ubuntu) and `pacman` (Arch Linux).
-
-## Quick start
-```bash
-sudo ./lab/setup.sh
-sudo ./lab/status.sh
-```
-
-## Stop lab
-```bash
-sudo ./lab/teardown.sh
-```
-
-## Structure
-- `lab/`: namespace topology + services
-- `attacks/`: four attack exercises
-- `defenses/`: mitigation and detection modules
-- `captures/`: PCAP output
-- `writeups/`: evidence-based exercise reports
-
-## Sentinel integration
-Netlab defense scripts default to:
-- `../sentinel`
-
-Override when needed:
-```bash
-export SENTINEL_PATH=/custom/path/to/sentinel
-```
