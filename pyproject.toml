@@ -15,3 +15,6 @@ dependencies = [
 
 [project.scripts]
 netlab = "netlab.cli:main"
+
+[tool.setuptools]
+packages = ["netlab", "netlab.scenarios"]
