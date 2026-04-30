@@ -1,1 +1,0 @@
-An attack and defense network lab built entirely with linux namespaces. creates isolated networks, deploys vulnerable services, executes real attacks, then builds and tests defenses with nftables and suricata.

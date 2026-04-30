@@ -1,5 +1,7 @@
 # Netlab: Comprehensive Project Report
 
+> This document describes the original lab layout before the v0.1.0 refactor. See README.md and CONTRACT.md for the current structure.
+
 ## Executive Summary
 
 **Netlab** is a containerized network attack-and-defense training lab built on Linux namespaces. It demonstrates four critical Layer 2-4 network attacks (ARP spoofing, MITM, DNS poisoning, SYN flooding) and implements corresponding defensive mechanisms. The lab provides reproducible, evidence-driven exercises with packet capture validation and includes automated orchestration for setup, execution, and teardown.
