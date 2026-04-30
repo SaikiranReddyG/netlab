@@ -6,5 +6,5 @@
 - Save packet capture names and timestamps.
 
 ## Sentinel integration
-- Default path: `../sentinel`
-- Override with `SENTINEL_PATH` or `--sentinel-path` where supported.
+- Integration is optional and external.
+- If you have Sentinel installed separately, point it at netlab event streams.

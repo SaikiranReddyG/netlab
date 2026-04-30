@@ -19,7 +19,6 @@ DNS_IP="10.0.0.53/24"
 BRIDGE_IP="10.0.0.1/24"
 GW_IP="10.0.0.1"
 
-SENTINEL_PATH_DEFAULT="${WORKSPACE_DIR}/sentinel"
 
 require_root() {
   if [[ ${EUID} -ne 0 ]]; then
@@ -65,10 +64,6 @@ check_prereqs() {
     missing=1
   fi
 
-  if [[ ! -d "${SENTINEL_PATH:-${SENTINEL_PATH_DEFAULT}}" ]]; then
-    echo "[!] Sentinel path not found at ${SENTINEL_PATH:-${SENTINEL_PATH_DEFAULT}}"
-    echo "    Set SENTINEL_PATH=/path/to/sentinel if needed."
-  fi
 
   if [[ ${missing} -ne 0 ]]; then
     print_install_hint

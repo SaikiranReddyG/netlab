@@ -25,7 +25,7 @@ except Exception:  # pragma: no cover - optional fallback import
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 NETLAB_ROOT = SCRIPT_DIR.parents[1]
-DEFAULT_SENTINEL_PATH = NETLAB_ROOT.parent / "sentinel"
+DEFAULT_SENTINEL_PATH = None
 DEFAULT_RULES_PATH = NETLAB_ROOT / "defenses" / "03-ids" / "sentinel-rules.yaml"
 
 
@@ -34,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--iface", default="veth-def")
     p.add_argument(
         "--sentinel-path",
-        default=os.environ.get("SENTINEL_PATH", str(DEFAULT_SENTINEL_PATH)),
+        default=os.environ.get("SENTINEL_PATH"),
         help="Path to sentinel repository",
     )
     p.add_argument(
@@ -121,13 +121,16 @@ def run_fallback(iface: str, threshold: int, window: int) -> int:
 
 def main() -> int:
     args = parse_args()
-    sentinel_path = Path(args.sentinel_path).resolve()
     rules_file = Path(args.rules).resolve()
+    if args.sentinel_path is not None:
+        sentinel_path = Path(args.sentinel_path).resolve()
+        if not args.fallback and sentinel_path.exists() and rules_file.exists():
+            return run_sentinel(sentinel_path, args.iface, rules_file)
 
-    if not args.fallback and sentinel_path.exists() and rules_file.exists():
-        return run_sentinel(sentinel_path, args.iface, rules_file)
-
-    print("[detect] Sentinel path/rules unavailable or fallback requested, using local detector")
+    if args.sentinel_path is None:
+        print("[detect] Sentinel integration not configured; using local fallback detector.")
+    else:
+        print("[detect] Fallback requested or Sentinel path unavailable, using local detector")
     return run_fallback(args.iface, args.threshold, args.window)
 
 
