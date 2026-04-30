@@ -16,6 +16,7 @@ sudo ./lab/install-deps.sh
 python3 -m venv .venv
 .venv/bin/pip install --upgrade pip setuptools wheel
 .venv/bin/pip install -e .
+sudo .venv/bin/netlab dashboard
 sudo .venv/bin/netlab list
 sudo .venv/bin/netlab run arp_spoof
 sudo .venv/bin/netlab clean
@@ -35,6 +36,19 @@ How netlab works
 Integration
 -----------
 netlab runs standalone and emits codex-contract events that external consumers can ingest. See `CONTRACT.md` for the event schema and `netlab --help` for runtime options.
+
+UI Options
+----------
+**Dashboard (static snapshot)**:
+```bash
+sudo .venv/bin/netlab dashboard
+```
+
+**TUI (live, interactive)**:
+```bash
+.venv/bin/netlab tui
+```
+The TUI displays real-time lab state, active scenarios, and available scenarios. Refreshes automatically every second. Press `Q` to quit or `R` to refresh manually.
 
 Building / installing
 ---------------------

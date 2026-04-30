@@ -19,6 +19,18 @@ def require_root():
         sys.exit(1)
 
 
+def _label(value: str, color: str) -> str:
+    return click.style(value, fg=color, bold=True)
+
+
+def _status_label(ok: bool, good: str, bad: str) -> str:
+    return _label(good, "green") if ok else _label(bad, "red")
+
+
+def _section(title: str) -> None:
+    click.echo(click.style(title, bold=True))
+
+
 @click.group()
 @click.option("-q", "--quiet", is_flag=True, default=False, help="Suppress info output")
 @click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose output")
@@ -50,6 +62,46 @@ def list():
     click.echo(f"{'NAME':20} {'DESCRIPTION':50} {'DURATION':8}")
     for r in rows:
         click.echo(f"{r[0]:20} {r[1]:50} {r[2]:8}")
+
+
+@main.command()
+def dashboard():
+    """Show a compact UI-style snapshot of the lab"""
+    active = state.read_active()
+    fully_up = topology.is_fully_up()
+    clean = topology.is_clean()
+    residual = topology.residual_state()
+
+    click.echo(click.style("netlab dashboard", bold=True))
+    click.echo(f"Version: {__version__}")
+    click.echo(f"Lab state: {_status_label(fully_up, 'fully up', 'not fully up')}")
+    click.echo(f"Clean state: {_status_label(clean, 'clean', 'dirty')}")
+
+    _section("Active run")
+    if active:
+        click.echo(f"  scenario: {active.get('scenario')}")
+        click.echo(f"  pid: {active.get('pid')}")
+        click.echo(f"  started_at: {active.get('started_at')}")
+    else:
+        click.echo("  none")
+
+    _section("Residual state")
+    if residual:
+        for item in residual:
+            click.echo(f"  - {item}")
+    else:
+        click.echo("  none")
+
+    _section("Scenarios")
+    for name in list_scenarios():
+        try:
+            sc = get_scenario(name)
+            desc = getattr(sc, "description", "")
+            duration = getattr(sc, "expected_duration_seconds", "")
+        except Exception:
+            desc = "<error loading>"
+            duration = ""
+        click.echo(f"  {name:12} {desc} ({duration}s)")
 
 
 @main.command()
@@ -274,6 +326,21 @@ def version():
     except Exception:
         pass
     click.echo(f"netlab {__version__} ({git_hash})")
+
+
+@main.command()
+def tui():
+    """Launch the live TUI dashboard"""
+    # no root required for viewing
+    try:
+        from netlab.tui import run_tui
+        run_tui()
+    except ImportError as e:
+        click.echo("Textual not installed. Install with: pip install textual", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"TUI error: {e}", err=True)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
