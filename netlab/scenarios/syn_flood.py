@@ -3,9 +3,8 @@ from __future__ import annotations
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict
 
-from netlab.scenarios.base import Scenario, ScenarioContext
+from netlab.scenarios.base import Scenario, ScenarioContext, wait_for_duration
 from netlab.scenarios import register
 
 
@@ -28,8 +27,7 @@ class SynFloodScenario(Scenario):
         )
 
     def run(self, ctx: ScenarioContext) -> None:
-        params: Dict = {k: v["default"] for k, v in self.parameters.items()}
-        params.update(ctx.params or {})
+        params = self._merge_params(ctx)
 
         ctx.emit_event("netlab.scenario.event", "low", {"scenario": self.name, "step": "starting", "details": params})
 
@@ -49,21 +47,7 @@ class SynFloodScenario(Scenario):
         ]
 
         proc = subprocess.Popen(cmd)
-        try:
-            # wait until process exits or aborted
-            while True:
-                if ctx.aborted_check():
-                    break
-                if proc.poll() is not None:
-                    break
-                time.sleep(0.5)
-        finally:
-            if proc.poll() is None:
-                proc.terminate()
-                try:
-                    proc.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
+        wait_for_duration(None, ctx, [proc])
 
         ctx.emit_event("netlab.scenario.event", "low", {"scenario": self.name, "step": "complete"})
 

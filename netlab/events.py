@@ -1,5 +1,6 @@
 import json
 import socket
+import sys
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -29,7 +30,7 @@ def emit_event(event_type: str, severity: str, payload: dict) -> None:
 		"host": socket.gethostname(),
 		"event_type": event_type,
 		"severity": severity,
-		"payload": payload or {},
+		"payload": payload,
 	}
 
 	if _output is None:
@@ -44,6 +45,6 @@ def flush() -> None:
 	if _output is not None:
 		try:
 			_output.flush()
-		except Exception:
-			pass
+		except OSError as e:
+			print(f"Warning: Failed to flush events: {e}", file=sys.stderr)
 

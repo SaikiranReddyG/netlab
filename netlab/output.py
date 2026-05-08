@@ -1,4 +1,3 @@
-# Output stub
 import sys
 import json
 import time
@@ -23,10 +22,7 @@ class StdoutOutput(Output):
 		print(json.dumps(event), flush=True)
 
 	def flush(self) -> None:
-		try:
-			sys.stdout.flush()
-		except Exception:
-			pass
+		sys.stdout.flush()
 
 
 class FileOutput(Output):
@@ -40,8 +36,8 @@ class FileOutput(Output):
 	def flush(self) -> None:
 		try:
 			self.f.flush()
-		except Exception:
-			pass
+		except OSError as e:
+			print(f"Warning: Failed to flush event file: {e}", file=sys.stderr)
 
 
 class HttpPostOutput(Output):
@@ -69,13 +65,11 @@ class HttpPostOutput(Output):
 					resp = requests.post(self.url, json=event, timeout=self.timeout)
 					resp.raise_for_status()
 				return
-			except Exception:
+			except Exception as e:
 				time.sleep(backoff)
 				backoff = min(backoff * 2, 5)
-		# final failure -- drop and continue
-
-	def flush(self) -> None:
-		return
+		# final failure -- log and drop
+		print(f"Warning: Failed to POST event after {max_attempts} attempts; event dropped", file=sys.stderr)
 
 
 def make_output(spec: str, url: Optional[str] = None, path: Optional[str] = None) -> Output:

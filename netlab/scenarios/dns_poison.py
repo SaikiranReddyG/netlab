@@ -3,9 +3,9 @@ from __future__ import annotations
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict, List
+from typing import List
 
-from netlab.scenarios.base import Scenario, ScenarioContext
+from netlab.scenarios.base import Scenario, ScenarioContext, wait_for_duration, start_arp_spoof
 from netlab.scenarios import register
 
 
@@ -28,35 +28,15 @@ class DnsPoisonScenario(Scenario):
             },
         )
 
-    def _start_arp(self, target_ip: str, gateway_ip: str) -> subprocess.Popen:
-        cmd = [
-            "ip",
-            "netns",
-            "exec",
-            "ns-atk",
-            "python3",
-            str(ATTACK_SCRIPT),
-            "--iface",
-            "veth-atk",
-            "--target-ip",
-            target_ip,
-            "--gateway-ip",
-            gateway_ip,
-            "--interval",
-            "1",
-        ]
-        return subprocess.Popen(cmd)
-
     def run(self, ctx: ScenarioContext) -> None:
-        params: Dict = {k: v["default"] for k, v in self.parameters.items()}
-        params.update(ctx.params or {})
+        params = self._merge_params(ctx)
 
         ctx.emit_event("netlab.scenario.event", "low", {"scenario": self.name, "step": "starting"})
 
         procs: List[subprocess.Popen] = []
         # MITM ARP setup
-        procs.append(self._start_arp("10.0.0.10", "10.0.0.1"))
-        procs.append(self._start_arp("10.0.0.1", "10.0.0.10"))
+        procs.append(start_arp_spoof(str(ATTACK_SCRIPT), "10.0.0.10", "10.0.0.1"))
+        procs.append(start_arp_spoof(str(ATTACK_SCRIPT), "10.0.0.1", "10.0.0.10"))
 
         # start poison
         poison_cmd = [
@@ -76,23 +56,7 @@ class DnsPoisonScenario(Scenario):
         poison_proc = subprocess.Popen(poison_cmd)
         procs.append(poison_proc)
 
-        try:
-            start = time.time()
-            while time.time() - start < float(params["duration"]):
-                if ctx.aborted_check():
-                    break
-                for p in procs:
-                    if p.poll() is not None:
-                        break
-                time.sleep(0.5)
-        finally:
-            for p in procs:
-                if p.poll() is None:
-                    p.terminate()
-                    try:
-                        p.wait(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        p.kill()
+        wait_for_duration(float(params["duration"]), ctx, procs)
 
         ctx.emit_event("netlab.scenario.event", "low", {"scenario": self.name, "step": "complete"})
 

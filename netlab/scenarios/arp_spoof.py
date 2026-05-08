@@ -3,9 +3,8 @@ from __future__ import annotations
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict
 
-from netlab.scenarios.base import Scenario, ScenarioContext
+from netlab.scenarios.base import Scenario, ScenarioContext, wait_for_duration
 from netlab.scenarios import register
 
 
@@ -29,8 +28,7 @@ class ArpSpoofScenario(Scenario):
         )
 
     def run(self, ctx: ScenarioContext) -> None:
-        params: Dict = {k: v["default"] for k, v in self.parameters.items()}
-        params.update(ctx.params or {})
+        params = self._merge_params(ctx)
 
         ctx.emit_event("netlab.scenario.event", "low", {
             "scenario": self.name,
@@ -56,21 +54,7 @@ class ArpSpoofScenario(Scenario):
         ]
 
         proc = subprocess.Popen(cmd)
-        try:
-            start = time.time()
-            while time.time() - start < float(params["duration"]):
-                if ctx.aborted_check():
-                    break
-                if proc.poll() is not None:
-                    break
-                time.sleep(0.5)
-        finally:
-            if proc.poll() is None:
-                proc.terminate()
-                try:
-                    proc.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
+        wait_for_duration(float(params["duration"]), ctx, [proc])
 
         ctx.emit_event("netlab.scenario.event", "low", {
             "scenario": self.name,
