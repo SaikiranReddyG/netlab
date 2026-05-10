@@ -124,14 +124,16 @@ def describe(scenario_name: str):
 @click.option("--output", type=click.Choice(["stdout", "file", "http_post"]), default="stdout")
 @click.option("--output-url", default=None)
 @click.option("--output-file", default=None)
+@click.option("--auth-header", default=None,
+              help="Authorization header for http_post output (e.g. 'Authorization: Bearer token').")
 @click.option("--no-setup", is_flag=True, default=False)
 @click.option("--no-teardown", is_flag=True, default=False)
 @click.option("--params", multiple=True, help="KEY=VALUE parameters")
-def run(scenario_name, output, output_url, output_file, no_setup, no_teardown, params):
+def run(scenario_name, output, output_url, output_file, auth_header, no_setup, no_teardown, params):
     """Execute a scenario end-to-end"""
     require_root()
 
-    out = make_output(output, url=output_url, path=output_file)
+    out = make_output(output, url=output_url, path=output_file, auth_header=auth_header)
     events.set_output(out)
 
     try:
