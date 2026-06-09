@@ -535,6 +535,8 @@ def pair(scenario_name, defense_name, output, output_url, output_file, auth_head
     )
 
     payload = state.make_active_payload(os.getpid(), scenario_name, sc.required_namespaces, topology.BRIDGE)
+    payload["defense"] = defense_name
+    payload["mode"] = mode
     try:
         state.write_active(payload)
     except Exception:
@@ -905,12 +907,176 @@ def tui():
     try:
         from netlab.tui import run_tui
         run_tui()
-    except ImportError as e:
+    except ImportError:
         click.echo("Textual not installed. Install with: pip install textual", err=True)
         sys.exit(1)
     except Exception as e:
         click.echo(f"TUI error: {e}", err=True)
         sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
+# Playbook commands
+# ---------------------------------------------------------------------------
+
+@main.group()
+def playbook():
+    """Run scripted sequences of attacks and defenses from a YAML file."""
+    pass
+
+
+@playbook.command(name="run")
+@click.argument("playbook_file", type=click.Path(exists=True, dir_okay=False))
+@click.option("--output", default="stdout", show_default=True,
+              type=click.Choice(["stdout", "file", "http_post"]),
+              help="Event output format for each step.")
+@click.option("--output-file", default=None, metavar="PATH",
+              help="Log file path (for --output file).")
+@click.option("--output-url", default=None, metavar="URL",
+              help="HTTP endpoint (for --output http_post).")
+@click.option("--no-setup", is_flag=True, default=False,
+              help="Skip lab setup (assumes topology already up).")
+@click.option("--no-teardown", is_flag=True, default=False,
+              help="Skip teardown after each step.")
+def playbook_run(playbook_file, output, output_file, output_url, no_setup, no_teardown):
+    """Execute a playbook YAML file step by step.
+
+    \b
+    Playbook format:
+      name: full-demo
+      steps:
+        - run: arp_spoof
+          params:
+            duration: 15
+        - pause: 3
+        - pair: arp_spoof
+          defense: arp_defense
+          mode: pre-apply
+          scenario_params:
+            duration: 15
+    """
+    require_root()
+
+    try:
+        import yaml as _yaml
+    except ImportError:
+        click.echo("pyyaml is required for playbooks:  pip install pyyaml", err=True)
+        sys.exit(1)
+
+    with open(playbook_file) as fh:
+        pb = _yaml.safe_load(fh)
+
+    if not isinstance(pb, dict):
+        click.echo("Invalid playbook: top-level must be a YAML mapping.", err=True)
+        sys.exit(1)
+
+    pb_name = pb.get("name", Path(playbook_file).stem)
+    steps = pb.get("steps") or []
+    if not steps:
+        click.echo("Playbook has no steps — nothing to do.", err=True)
+        sys.exit(1)
+
+    click.echo(click.style(f"Playbook: {pb_name}", bold=True))
+    click.echo(f"  {len(steps)} step(s)")
+    click.echo("─" * 60)
+
+    netlab_bin = str(Path(sys.executable).parent / "netlab")
+
+    # Build common output flags to forward to sub-commands
+    out_flags: list[str] = ["--output", output]
+    if output_file:
+        out_flags += ["--output-file", output_file]
+    if output_url:
+        out_flags += ["--output-url", output_url]
+    if no_setup:
+        out_flags.append("--no-setup")
+    if no_teardown:
+        out_flags.append("--no-teardown")
+
+    total = len(steps)
+    passed = failed = 0
+    WIDTH = 52
+
+    for i, step in enumerate(steps, 1):
+
+        # ── pause ──────────────────────────────────────────────
+        if "pause" in step:
+            duration = float(step["pause"])
+            label = f"  [{i}/{total}]  pause {duration:.0f}s"
+            click.echo(label)
+            time.sleep(duration)
+            passed += 1
+
+        # ── run (standalone attack) ─────────────────────────────
+        elif "run" in step:
+            sc_name = step["run"]
+            params = step.get("params") or {}
+            label = f"  [{i}/{total}]  run {sc_name}"
+            click.echo(f"{label:<{WIDTH}} running...", nl=False)
+
+            cmd = [netlab_bin, "run", sc_name]
+            for k, v in params.items():
+                cmd += ["--params", f"{k}={v}"]
+            cmd += out_flags
+
+            rc = subprocess.run(cmd).returncode
+            if rc == 0:
+                suffix = click.style("PASS", fg="green", bold=True)
+                passed += 1
+            else:
+                suffix = click.style("FAIL", fg="red", bold=True) + f"  exit {rc}"
+                failed += 1
+            click.echo(f"\r{label:<{WIDTH}} {suffix}")
+
+        # ── pair (attack + defense) ─────────────────────────────
+        elif "pair" in step:
+            raw = step["pair"]
+            if isinstance(raw, list) and len(raw) == 2:
+                sc_name, def_name = raw
+            elif isinstance(raw, str):
+                sc_name = raw
+                def_name = step.get("defense", "")
+            else:
+                click.echo(f"  [{i}/{total}]  invalid pair value: {raw!r}, skipping", err=True)
+                failed += 1
+                continue
+
+            if not def_name:
+                click.echo(f"  [{i}/{total}]  pair step missing defense name, skipping", err=True)
+                failed += 1
+                continue
+
+            mode = step.get("mode", "pre-apply")
+            sc_params = step.get("scenario_params") or {}
+            def_params = step.get("defense_params") or {}
+            label = f"  [{i}/{total}]  pair {sc_name} × {def_name}"
+            click.echo(f"{label:<{WIDTH}} running...", nl=False)
+
+            cmd = [netlab_bin, "pair", sc_name, def_name, "--mode", mode]
+            for k, v in sc_params.items():
+                cmd += ["--scenario-params", f"{k}={v}"]
+            for k, v in def_params.items():
+                cmd += ["--defense-params", f"{k}={v}"]
+            cmd += out_flags
+
+            rc = subprocess.run(cmd).returncode
+            if rc == 0:
+                suffix = click.style("PASS", fg="green", bold=True)
+                passed += 1
+            else:
+                suffix = click.style("FAIL", fg="red", bold=True) + f"  exit {rc}"
+                failed += 1
+            click.echo(f"\r{label:<{WIDTH}} {suffix}")
+
+        else:
+            click.echo(f"  [{i}/{total}]  [dim]unknown step keys: {list(step.keys())} — skipping[/dim]")
+
+    click.echo("─" * 60)
+    if failed == 0:
+        click.echo(click.style(f"  ALL PASSED", fg="green", bold=True) + f"  ({passed}/{total} steps)")
+    else:
+        click.echo(click.style(f"  {failed} FAILED", fg="red", bold=True) + f"  ({passed} passed, {failed} failed)")
+    sys.exit(0 if failed == 0 else 1)
 
 
 if __name__ == "__main__":

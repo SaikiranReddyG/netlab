@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""netlab live TUI — side-by-side attack and defense event feed."""
+"""netlab live TUI — topology hero layout with side-by-side event feeds."""
 
 from __future__ import annotations
 
 import json
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 from textual.app import App, ComposeResult
@@ -15,8 +15,6 @@ from textual.widgets import Footer, Label, RichLog, Static
 
 from netlab import state as state_module
 from netlab import topology
-from netlab.scenarios import list_scenarios, get_scenario
-from netlab.defenses import list_defenses, get_defense
 
 
 _SEVERITY_STYLE = {
@@ -26,12 +24,6 @@ _SEVERITY_STYLE = {
     "high":     "bold red",
     "critical": "bold red on dark_red",
 }
-
-_ATTACK_PREFIXES = (
-    "netlab.scenario.",
-    "netlab.lifecycle.",
-    "netlab.pair.",
-)
 
 
 def _ts(event: dict) -> str:
@@ -107,7 +99,7 @@ def _format_defense(event: dict) -> str:
         elif step == "static_arp_locked":
             label = f"  static ARP locked in {details.get('ns', '')}"
         elif step == "static_arp_failed":
-            label = f"  ⚠ static ARP failed"
+            label = "  ⚠ static ARP failed"
         elif step == "detector_starting":
             label = f"▶ starting detector on {details.get('iface', '')}"
         elif step == "detector_started":
@@ -134,55 +126,82 @@ def _format_defense(event: dict) -> str:
     return f"[{style}]{ts}  {label}[/{style}]"
 
 
-class StatusBar(Static):
-    """Single-line header showing lab state and active run."""
+class TopologyPanel(Static):
+    """Topology diagram showing namespace layout and live attack/defense state."""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._active: dict | None = None
-        self._up: bool = False
+        self._fully_up: bool = False
         self._start_ts: float | None = None
 
     def update_state(self, active: dict | None, fully_up: bool) -> None:
         if active != self._active:
-            self._active = active
-            self._start_ts = time.time() if active else None
-        self._up = fully_up
+            if active is not None and self._active is None:
+                self._start_ts = time.time()
+            elif active is None:
+                self._start_ts = None
+        self._active = active
+        self._fully_up = fully_up
         self.refresh()
 
     def render(self) -> str:
-        lab = "[green]● UP[/green]" if self._up else "[red]● DOWN[/red]"
+        active = self._active or {}
+        sc = active.get("scenario", "")
+        defense = active.get("defense", "")
+        mode = active.get("mode", "pre-apply")
+        up = self._fully_up
 
-        if self._active:
-            sc = self._active.get("scenario", "?")
-            elapsed = int(time.time() - self._start_ts) if self._start_ts else 0
-            h, rem = divmod(elapsed, 3600)
-            m, s = divmod(rem, 60)
-            timer = f"{h:02d}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
-            run_info = f"[bold]{sc}[/bold]  elapsed: [cyan]{timer}[/cyan]"
+        # Per-node colors
+        c_atk = "bold red"    if sc      else ("green" if up else "dim")
+        c_srv = "yellow"       if sc      else ("green" if up else "dim")
+        c_def = "bold cyan"    if defense else ("green" if up else "dim")
+        c_dns = "green"        if up      else "dim"
+        c_br  = "bold green"   if up      else "dim"
+
+        # Attack arrow (ns-atk → br-lab)
+        if sc:
+            atk_arrow = "[bold red]──⚡──▶[/]"
         else:
-            run_info = "[dim]no active run[/dim]"
+            atk_arrow = "[dim]──────▶[/]"
 
-        return f" {lab}    {run_info}"
+        # Lab status indicator
+        lab_dot = "[bold green]● UP[/]" if up else "[bold red]● DOWN[/]"
 
+        # Elapsed timer
+        elapsed_str = ""
+        if self._start_ts and (sc or defense):
+            secs = int(time.time() - self._start_ts)
+            m, s = divmod(secs, 60)
+            elapsed_str = f"  [cyan]{m:02d}:{s:02d}[/cyan]"
 
-class BottomGrid(Static):
-    """Scenario and defense names as a quick-reference grid."""
+        # Active run info line
+        if sc and defense:
+            run_line = (
+                f"  [{c_atk}]{sc}[/] [dim]──────────────────────────────▶[/dim]"
+                f" [{c_def}]{defense}[/]  [dim]({mode})[/dim]{elapsed_str}"
+            )
+        elif sc:
+            run_line = f"  [{c_atk}]{sc}[/]  [dim]running[/dim]{elapsed_str}"
+        else:
+            run_line = "  [dim]no active run[/dim]"
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._scenarios: list[str] = []
-        self._defenses: list[dict] = []
+        lines = [
+            f"  {lab_dot}",
+            "",
+            f"  [{c_atk}]┌─ ns-atk ──┐[/]        [{c_br}]┌─────────┐[/]      [{c_srv}]┌─ ns-srv ───┐[/]",
+            f"  [{c_atk}]│ ATTACKER  │[/]{atk_arrow} [{c_br}]│ br-lab  │[/] [dim]◀────[/dim]  [{c_srv}]│  TARGET    │[/]",
+            f"  [{c_atk}]│ 10.0.0.2  │[/]        [{c_br}]│10.0.0.1 │[/]      [{c_srv}]│ 10.0.0.10  │[/]",
+            f"  [{c_atk}]└───────────┘[/]        [{c_br}]└────┬────┘[/]      [{c_srv}]└────────────┘[/]",
+            f"  [{c_def}]┌─ ns-def ──┐[/]             [dim]│[/dim]            [{c_dns}]┌─ ns-dns ───┐[/]",
+            f"  [{c_def}]│ DEFENDER  │[/][dim]────────────┘[/dim]            [{c_dns}]│    DNS     │[/]",
+            f"  [{c_def}]│ 10.0.0.3  │[/]                         [{c_dns}]│ 10.0.0.53  │[/]",
+            f"  [{c_def}]└───────────┘[/]                         [{c_dns}]└────────────┘[/]",
+            "",
+            run_line,
+        ]
 
-    def update_items(self, scenarios: list[str], defenses: list[dict]) -> None:
-        self._scenarios = scenarios
-        self._defenses = defenses
-        self.refresh()
-
-    def render(self) -> str:
-        sc_names = "  ".join(self._scenarios) if self._scenarios else "—"
-        def_names = "  ".join(d["name"] for d in self._defenses) if self._defenses else "—"
-        return f" [dim]scenarios:[/dim]  {sc_names}\n [dim]defenses:[/dim]   {def_names}"
+        return "\n".join(lines)
 
 
 class NetLabApp(App):
@@ -191,11 +210,11 @@ class NetLabApp(App):
         background: $surface;
     }
 
-    StatusBar {
-        height: 1;
-        background: $primary;
-        color: $text;
+    TopologyPanel {
+        height: 14;
+        background: $panel;
         padding: 0 1;
+        border-bottom: tall $primary-darken-2;
     }
 
     #panels {
@@ -234,13 +253,6 @@ class NetLabApp(App):
         scrollbar-size: 1 1;
     }
 
-    BottomGrid {
-        height: 3;
-        background: $panel;
-        padding: 0 1;
-        border-top: tall $primary-darken-2;
-    }
-
     Footer {
         height: 1;
     }
@@ -253,8 +265,10 @@ class NetLabApp(App):
         Binding("c", "clear_logs", "Clear"),
     ]
 
+    TITLE = "netlab"
+
     def compose(self) -> ComposeResult:
-        yield StatusBar(id="status-bar")
+        yield TopologyPanel(id="topology")
         with Horizontal(id="panels"):
             with Vertical(id="attack-pane"):
                 yield Label("ATTACK", id="attack-label", classes="pane-label")
@@ -262,7 +276,6 @@ class NetLabApp(App):
             with Vertical(id="defense-pane"):
                 yield Label("DEFENSE", id="defense-label", classes="pane-label")
                 yield RichLog(id="defense-log", highlight=False, markup=True, wrap=True)
-        yield BottomGrid(id="bottom-grid")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -271,38 +284,21 @@ class NetLabApp(App):
         self.set_interval(0.5, self._poll)
 
     def _poll(self) -> None:
-        self._update_status()
+        self._update_topology()
         self._read_events()
 
-    def _update_status(self) -> None:
+    def _update_topology(self) -> None:
         active = state_module.read_active()
         fully_up = topology.is_fully_up()
 
-        status = self.query_one(StatusBar)
-        status.update_state(active, fully_up)
+        topo = self.query_one(TopologyPanel)
+        topo.update_state(active, fully_up)
 
-        # Reset log position and clear panels when a new run starts
         if active != self._last_active and active is not None and self._last_active is None:
             self._file_pos = 0
             self.query_one("#attack-log", RichLog).clear()
             self.query_one("#defense-log", RichLog).clear()
         self._last_active = active
-
-        bottom = self.query_one(BottomGrid)
-        sc_names = []
-        for name in list_scenarios():
-            try:
-                sc_names.append(name)
-            except Exception:
-                pass
-        def_items = []
-        for name in list_defenses():
-            try:
-                d = get_defense(name)
-                def_items.append({"name": name, "mitigates": d.mitigates})
-            except Exception:
-                pass
-        bottom.update_items(sc_names, def_items)
 
     def _read_events(self) -> None:
         log_path = state_module.tui_log_path()
@@ -310,7 +306,6 @@ class NetLabApp(App):
             return
         try:
             with open(log_path, "r") as f:
-                # If file was truncated (new run started), reset cursor
                 f.seek(0, 2)
                 size = f.tell()
                 if size < self._file_pos:
@@ -334,7 +329,6 @@ class NetLabApp(App):
 
     def _route_event(self, event: dict) -> None:
         etype = event.get("event_type", "")
-
         if etype.startswith("netlab.defense."):
             line = _format_defense(event)
             self.query_one("#defense-log", RichLog).write(line)
@@ -343,7 +337,7 @@ class NetLabApp(App):
             self.query_one("#attack-log", RichLog).write(line)
 
     def action_refresh(self) -> None:
-        self._update_status()
+        self._update_topology()
 
     def action_clear_logs(self) -> None:
         self.query_one("#attack-log", RichLog).clear()

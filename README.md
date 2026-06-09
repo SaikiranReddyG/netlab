@@ -79,7 +79,27 @@ sudo .venv/bin/netlab run arp_spoof --dry-run
 
 TUI
 ---
-The live TUI shows a split view — attack events on the left, defense events on the right — updated in real time as any run progresses.
+The live TUI shows a topology diagram at the top — all four namespaces and the bridge, with live attack direction indicators — and split ATTACK / DEFENSE log panels below.
+
+```
+  ● UP
+
+  ┌─ ns-atk ──┐        ┌─────────┐      ┌─ ns-srv ───┐
+  │ ATTACKER  │──⚡──▶ │ br-lab  │ ◀────│  TARGET    │
+  │ 10.0.0.2  │        │10.0.0.1 │      │ 10.0.0.10  │
+  └───────────┘        └────┬────┘      └────────────┘
+  ┌─ ns-def ──┐             │           ┌─ ns-dns ───┐
+  │ DEFENDER  │─────────────┘           │    DNS     │
+  │ 10.0.0.3  │                         │ 10.0.0.53  │
+  └───────────┘                         └────────────┘
+
+  arp_spoof ──────────────────────────▶ arp_defense  (pre-apply)  00:08
+ ─────────────────────────────────────────────────────────────────────
+  ATTACK                              │ DEFENSE
+  12:34:56  ▶ arp_spoof               │ 12:34:56  ▶ locking ARP
+  12:34:57    starting_attack         │ 12:34:57    monitoring br-lab
+  12:35:01    attack_complete         │ 12:35:01  ⚠ ALERT  ARP spoof…
+```
 
 Open two terminals:
 
@@ -93,14 +113,55 @@ Terminal 2 (run any attack, defense, or pair):
 sudo .venv/bin/netlab pair arp_spoof arp_defense --output stdout
 ```
 
+The topology nodes change color based on state: attacker goes red during a scenario, defender goes cyan when a defense is active, all nodes go dim when the lab is down.
+
 TUI keyboard shortcuts:
 
 | Key | Action |
 |-----|--------|
 | `Q` | Quit |
-| `R` | Refresh |
+| `R` | Refresh topology |
 | `Tab` | Switch focus between ATTACK / DEFENSE panels |
 | `C` | Clear both logs |
+
+Playbooks
+---------
+Run a scripted sequence of attacks and defenses from a YAML file:
+
+```bash
+sudo .venv/bin/netlab playbook run demo.yaml
+```
+
+Playbook format:
+
+```yaml
+name: full-demo
+steps:
+  - run: arp_spoof
+    params:
+      duration: 15
+  - pause: 3
+  - pair: arp_spoof
+    defense: arp_defense
+    mode: pre-apply
+    scenario_params:
+      duration: 15
+  - pair: syn_flood
+    defense: firewall
+    mode: concurrent
+    scenario_params:
+      count: 400
+```
+
+Supported step types:
+
+| Step | Keys | Description |
+|------|------|-------------|
+| `run` | `run`, `params` | Run a standalone attack scenario |
+| `pair` | `pair`, `defense`, `mode`, `scenario_params`, `defense_params` | Run an attack paired with a defense |
+| `pause` | `pause` | Sleep for N seconds between steps |
+
+Exit code: `0` if all steps passed, `1` if any step failed.
 
 Regression testing
 ------------------

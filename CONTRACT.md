@@ -66,6 +66,4 @@ Lifecycle
 ---------
 Each invocation follows: preflight → optional `lab/setup.sh` → `netlab.scenarios` run → `lab/teardown.sh` → verify clean → exit. See `netlab run --help` and `netlab/cli.py` for runtime options.
 
-What this is not
------------------
-netlab is not a daemon, not a multi-host simulator, and does not provide continuous metrics or hot reload. Each run is hermetic: setup → scenario → teardown → exit.
+
