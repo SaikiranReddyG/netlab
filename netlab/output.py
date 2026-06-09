@@ -41,14 +41,29 @@ class FileOutput(Output):
 
 
 class HttpPostOutput(Output):
-	def __init__(self, url: str = "http://127.0.0.1:8765/events", timeout: int = 5, auth_header: Optional[str] = None):
+	def __init__(
+		self,
+		url: str = "http://127.0.0.1:8765/events",
+		timeout: int = 5,
+		auth_header: Optional[str] = None,
+		batch_size: int = 1,
+	):
 		self.url = url
 		self.timeout = timeout
 		self.auth_header = auth_header
+		self.batch_size = max(1, batch_size)
+		self._buffer: list = []
 
-	def emit(self, event: dict) -> None:
-		body = json.dumps(event).encode("utf-8")
-		# Simple per-event POST with retry/backoff
+	def _build_headers(self) -> dict:
+		headers: dict = {}
+		if self.auth_header:
+			auth_value = self.auth_header.replace("Authorization: ", "", 1).strip()
+			headers["Authorization"] = auth_value
+		return headers
+
+	def _post(self, payload) -> None:
+		body = json.dumps(payload).encode("utf-8")
+		headers = self._build_headers()
 		attempts = 0
 		backoff = 0.5
 		max_attempts = 5
@@ -56,40 +71,72 @@ class HttpPostOutput(Output):
 			attempts += 1
 			try:
 				if requests is None:
-					# fallback to urllib
 					from urllib.request import Request, urlopen
-
-					headers = {"Content-Type": "application/json"}
-					if self.auth_header:
-						# Extract token from full header string if needed
-						auth_value = self.auth_header.replace('Authorization: ', '', 1).strip()
-						headers["Authorization"] = auth_value
-					req = Request(self.url, data=body, headers=headers)
+					req_headers = {"Content-Type": "application/json", **headers}
+					req = Request(self.url, data=body, headers=req_headers)
 					with urlopen(req, timeout=self.timeout) as resp:
 						resp.read()
 				else:
-					headers = {}
-					if self.auth_header:
-						# Extract token from full header string if needed
-						auth_value = self.auth_header.replace('Authorization: ', '', 1).strip()
-						headers["Authorization"] = auth_value
-					resp = requests.post(self.url, json=event, timeout=self.timeout, headers=headers if headers else None)
+					requests.post(self.url, json=payload, timeout=self.timeout, headers=headers or None)
 				return
-			except Exception as e:
+			except Exception:
 				time.sleep(backoff)
 				backoff = min(backoff * 2, 5)
-		# final failure -- log and drop
-		print(f"Warning: Failed to POST event after {max_attempts} attempts; event dropped", file=sys.stderr)
+		print(f"Warning: Failed to POST after {max_attempts} attempts; events dropped", file=sys.stderr)
+
+	def emit(self, event: dict) -> None:
+		self._buffer.append(event)
+		if len(self._buffer) >= self.batch_size:
+			self.flush()
+
+	def flush(self) -> None:
+		if not self._buffer:
+			return
+		payload = self._buffer if self.batch_size > 1 else self._buffer[0]
+		self._buffer = []
+		self._post(payload)
 
 
-def make_output(spec: str, url: Optional[str] = None, path: Optional[str] = None, auth_header: Optional[str] = None) -> Output:
+class TeeOutput(Output):
+	"""Write events to two outputs simultaneously."""
+
+	def __init__(self, primary: Output, secondary: Output):
+		self.primary = primary
+		self.secondary = secondary
+
+	def emit(self, event: dict) -> None:
+		self.primary.emit(event)
+		try:
+			self.secondary.emit(event)
+		except Exception:
+			pass
+
+	def flush(self) -> None:
+		self.primary.flush()
+		try:
+			self.secondary.flush()
+		except Exception:
+			pass
+
+
+def make_output(
+	spec: str,
+	url: Optional[str] = None,
+	path: Optional[str] = None,
+	auth_header: Optional[str] = None,
+	batch_size: int = 1,
+) -> Output:
 	spec = (spec or "stdout").lower()
 	if spec == "stdout":
 		return StdoutOutput()
 	elif spec == "file":
 		return FileOutput(path or "events.jsonl")
 	elif spec == "http_post":
-		return HttpPostOutput(url or "http://127.0.0.1:8765/events", auth_header=auth_header)
+		return HttpPostOutput(
+			url or "http://127.0.0.1:8765/events",
+			auth_header=auth_header,
+			batch_size=batch_size,
+		)
 	else:
 		raise ValueError(f"Unknown output spec: {spec}")
 

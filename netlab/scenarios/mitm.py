@@ -25,6 +25,7 @@ class MitmScenario(Scenario):
                 "duration": {"default": 20, "type": int, "description": "Seconds to run"},
                 "active_modify": {"default": False, "type": bool, "description": "Enable payload modify"},
             },
+            expected_steps=["starting", "complete"],
         )
 
     def run(self, ctx: ScenarioContext) -> None:

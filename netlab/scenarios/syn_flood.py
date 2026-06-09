@@ -24,6 +24,7 @@ class SynFloodScenario(Scenario):
                 "count": {"default": 1000, "type": int, "description": "Packet count"},
                 "pps": {"default": 200, "type": int, "description": "Packets per second"},
             },
+            expected_steps=["starting", "complete"],
         )
 
     def run(self, ctx: ScenarioContext) -> None:

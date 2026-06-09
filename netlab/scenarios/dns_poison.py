@@ -26,6 +26,7 @@ class DnsPoisonScenario(Scenario):
                 "spoof_ip": {"default": "10.0.0.2", "type": str, "description": "IP to return"},
                 "duration": {"default": 20, "type": int, "description": "Seconds to run"},
             },
+            expected_steps=["starting", "complete"],
         )
 
     def run(self, ctx: ScenarioContext) -> None:

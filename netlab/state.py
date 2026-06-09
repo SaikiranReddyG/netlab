@@ -50,6 +50,17 @@ def remove_active() -> None:
 		pass
 
 
+def tui_log_path() -> Path:
+    return _choose_run_dir() / "events.jsonl"
+
+
+def clear_tui_log() -> None:
+    try:
+        tui_log_path().write_text("")
+    except Exception:
+        pass
+
+
 def make_active_payload(pid: int, scenario: str, namespaces: list, bridge: str) -> dict:
 	return {
 		"pid": pid,

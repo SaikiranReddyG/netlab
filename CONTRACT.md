@@ -40,6 +40,11 @@ Event types
 - `netlab.lifecycle.tearing_down` — teardown started (`info`).
 - `netlab.lifecycle.clean` — teardown completed and host verified clean (`info`).
 - `netlab.lifecycle.dirty` — teardown completed but residual state detected (`critical`).
+- `netlab.defense.applied` — defense step applied successfully (`info`) or failed (`high`).
+- `netlab.defense.alert` — defense detected a threat during a run (`high`).
+- `netlab.defense.removed` — defense torn down, includes `alert_count` (`info`).
+- `netlab.pair.started` — paired attack+defense run started (`info`).
+- `netlab.pair.summary` — paired run complete; includes `attack_success`, `defense_alerts`, `alert_messages` (`info`).
 
 Severity ladder
 ---------------

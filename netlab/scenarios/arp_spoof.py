@@ -25,6 +25,7 @@ class ArpSpoofScenario(Scenario):
                 "interval": {"default": 0.5, "type": float, "description": "Seconds between poison packets"},
                 "duration": {"default": 10, "type": int, "description": "Total seconds to run attack"},
             },
+            expected_steps=["starting_attack", "attack_complete"],
         )
 
     def run(self, ctx: ScenarioContext) -> None:

@@ -74,11 +74,21 @@ class Scenario(ABC):
 	required_namespaces: list[str] = field(default_factory=lambda: ["ns-atk", "ns-def", "ns-srv", "ns-dns"])
 	expected_duration_seconds: int = 30
 	parameters: dict = field(default_factory=dict)
+	expected_steps: list[str] = field(default_factory=list)
 
 	def _merge_params(self, ctx: ScenarioContext) -> dict:
-		"""Merge default parameters with context-provided overrides."""
+		"""Merge default parameters with context-provided overrides, coercing types."""
 		params = {k: v["default"] for k, v in self.parameters.items()}
 		params.update(ctx.params or {})
+		for k, spec in self.parameters.items():
+			expected_type = spec.get("type")
+			if expected_type is not None and k in params:
+				try:
+					params[k] = expected_type(params[k])
+				except (ValueError, TypeError) as exc:
+					raise ValueError(
+						f"Parameter '{k}': cannot convert {params[k]!r} to {expected_type.__name__}: {exc}"
+					)
 		return params
 
 	@abstractmethod
