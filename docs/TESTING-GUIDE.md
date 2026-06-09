@@ -529,10 +529,11 @@ echo "Before: $(tcpdump -r before-defense.pcap 2>/dev/null | wc -l)"
 echo "After: $(tcpdump -r after-defense.pcap 2>/dev/null | wc -l)"
 ```
 
-### Sentinel Integration Testing
+### External IDS Integration Testing
 ```bash
-# If Sentinel is available
-export SENTINEL_PATH=/path/to/codex-workspace/sentinel
+# If you want to replay netlab events into an external IDS or log pipeline,
+# point the `http_post` output at your collector.
+netlab run arp-spoof --output http_post --output-url http://127.0.0.1:8765/events
 
 # Run detection in background
 python3 defenses/01-arp-defense/detect.py &

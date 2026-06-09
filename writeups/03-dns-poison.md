@@ -21,7 +21,7 @@
 - `nslookup` still printing `10.0.0.10` indicates race/timing dominance by the legit response in that run, but PCAP confirms successful spoof injection.
 
 ## Defense Applied
-- IDS rule checks (`defenses/03-ids/sentinel-rules.yaml`)
+- IDS rule checks (`defenses/03-ids/`)
 - Firewall hardening if used
 
 ## Result After Defense

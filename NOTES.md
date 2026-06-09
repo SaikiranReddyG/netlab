@@ -5,6 +5,6 @@
 - Record before/after outputs for defenses.
 - Save packet capture names and timestamps.
 
-## Sentinel integration
+## External IDS integration
 - Integration is optional and external.
-- If you have Sentinel installed separately, point it at netlab event streams.
+- Feed netlab event streams into your preferred IDS or log pipeline via the `http_post` output.

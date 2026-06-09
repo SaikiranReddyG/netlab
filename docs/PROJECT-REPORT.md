@@ -475,7 +475,7 @@ tcpdump -nn -r captures/03-dns-poison.pcap | grep -E "A\?" | sort | uniq -c
 
 **Defense: IDS Rules**
 
-File: `defenses/03-ids/sentinel-rules.yaml` (Sentinel format)
+File: `defenses/03-ids/` (IDS rule bundle)
 
 ```yaml
 rules:
@@ -736,9 +736,9 @@ ip netns exec ns-srv nft list ruleset
 
 ### Defense 03: IDS Rules
 
-#### Sentinel Rules
+#### IDS Rules
 
-**File:** `defenses/03-ids/sentinel-rules.yaml`
+**File:** `defenses/03-ids/`
 
 ```yaml
 detection_rules:

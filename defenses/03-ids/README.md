@@ -1,7 +1,9 @@
 # IDS Defense
 
-## Sentinel integration
-If you have Sentinel installed separately, point it at netlab event streams via the `http_post` output. See `CONTRACT.md` for the event schema.
+## Event-stream integration
+The IDS emits and consumes the same event schema described in `CONTRACT.md`.
+Use the `http_post` output to feed external tooling if you want to replay or
+analyze events outside netlab.
 
 ## Suricata supplemental rules
 Load `suricata-custom.rules` if Suricata is installed in your environment.
