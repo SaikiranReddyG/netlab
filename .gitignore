@@ -2,6 +2,9 @@
 captures/*.pcap
 !captures/.gitkeep
 
+*.md
+!README.md
+
 /.venv/
 
 *.egg-info/
